@@ -4,8 +4,8 @@ part 'global-settings.g.dart';
 
 @JsonSerializable()
 class GlobalSettings extends Object {
-  @JsonKey(name: 'paths')
   List<String> paths;
+  String serverPort;
 
   GlobalSettings(
     this.paths,

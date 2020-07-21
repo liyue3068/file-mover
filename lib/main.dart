@@ -1,8 +1,11 @@
+import 'package:file_mover/connection-test.page.dart';
 import 'package:file_mover/index-page.dart';
+import 'package:file_mover/server-config.widget.dart';
 import 'package:file_mover/settings-page.dart';
 import 'package:file_mover/state/settings-state.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tuple/tuple.dart';
 
 class MainWidget extends StatelessWidget {
   static const String _title = '文件传输器';
@@ -18,8 +21,6 @@ class HomeWidget extends StatefulWidget {
 }
 
 class _HomeWidgetState extends State<HomeWidget> {
-  int _currentSelectedPageIndex = 0;
-
   @override
   Widget build(BuildContext context) {
     print('build _HomeWidgetState');
@@ -39,10 +40,20 @@ class _CustomTabBarState extends State<CustomTabBar>
   int _currentSelectedPageIndex = 0;
   TabController _tabController;
 
+  List<Tuple3<String, Widget, IconData>> _pages;
+  _CustomTabBarState() {
+    _pages = [
+      Tuple3<String, Widget, IconData>('首页', IndexPage(), Icons.home),
+      Tuple3<String, Widget, IconData>(
+          '连接测试', ConnectionTestPage(), Icons.network_wifi),
+      Tuple3<String, Widget, IconData>('配置', SettingsPage(), Icons.settings),
+    ];
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _pages.length, vsync: this);
     _tabController.addListener(() {
       if (_currentSelectedPageIndex == _tabController.index) return;
       setState(() {
@@ -64,16 +75,14 @@ class _CustomTabBarState extends State<CustomTabBar>
         title: Text('2333'),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            title: Text('首页'),
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            title: Text('设置'),
-          )
-        ],
+        items: _pages
+            .map(
+              (e) => BottomNavigationBarItem(
+                icon: Icon(e.item3),
+                title: Text(e.item1),
+              ),
+            )
+            .toList(),
         onTap: (value) {
           if (value == _currentSelectedPageIndex) return;
           setState(() {
@@ -84,10 +93,11 @@ class _CustomTabBarState extends State<CustomTabBar>
         currentIndex: _currentSelectedPageIndex,
       ),
       body: TabBarView(
-        children: [
-          IndexPage(),
-          SettingsPage(),
-        ],
+        children: _pages
+            .map(
+              (e) => e.item2,
+            )
+            .toList(),
         controller: _tabController,
       ),
     );
@@ -97,9 +107,6 @@ class _CustomTabBarState extends State<CustomTabBar>
 void main() {
   runApp(new MultiProvider(
     providers: [
-      Provider(
-        create: (_) => CustomTabBarState(),
-      ),
       ListenableProvider(
         create: (context) {
           print('Created SettingsState');
@@ -108,9 +115,13 @@ void main() {
           return settingsState;
         },
       ),
+      FutureProvider<StateNetworkInfo>(
+        create: (context) {
+          var result = StateNetworkInfo();
+          return result.init();
+        },
+      ),
     ],
     child: MainWidget(),
   ));
 }
-
-class CustomTabBarState extends ChangeNotifier {}

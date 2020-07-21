@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:file_mover/server-config.widget.dart';
+import 'package:file_mover/udpClient.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +23,13 @@ class _IndexPageState extends State<IndexPage>
 
   Stream<FileSystemEntity> _fileEntities;
   List<Uri> _fileUris;
+  UdpClient udpClient = UdpClient();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,55 +40,16 @@ class _IndexPageState extends State<IndexPage>
           onPressed: () async {
             var currentState = StateNetworkInfo();
             await currentState.init();
-
+            if (currentState == null) return;
+            // currentState.init();
             var a = await showDialog(
               context: context,
-              child: StatefulBuilder(
-                builder: (context, innerSetState) {
-                  print('mark');
-                  return SimpleDialog(
-                    title: Text('选择服务器'),
-                    children: <Widget>[
-                      DropdownButton(
-                        items: currentState.currentNetworkInterfaces
-                            .map(
-                              (e) => DropdownMenuItem(
-                                child: Text(e.name),
-                                value: e.index,
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (int value) {
-                          print('onChanged:' + value.toString());
-                          innerSetState(() {
-                            currentState
-                                .currentSelectedIndexOfNetworkInterface = value;
-                          });
-                        },
-                        value:
-                            currentState.currentSelectedIndexOfNetworkInterface,
-                        underline: SizedBox.shrink(),
-                      ),
-                      DropdownButton(
-                        items: currentState.currentIPAddressList
-                            .map(
-                              (e) => DropdownMenuItem(
-                                child: Text(e.address),
-                                value: e.address,
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          currentState.currentSelectedIpAddress = value;
-                        },
-                        value: currentState.currentSelectedIpAddress,
-                        underline: SizedBox.shrink(),
-                      ),
-                    ],
-                  );
-                },
-              ),
+              child: ServerConfigWidget(),
             );
+            if (a != null) {
+              await udpClient.init(a);
+              udpClient.findServer();
+            }
           },
           child: Text('连接服务器'),
         ),
@@ -197,39 +167,5 @@ class TransmissionStatus extends ChangeNotifier {
   set totalSize(double value) {
     _totalSize = value;
     this.notifyListeners();
-  }
-}
-
-class StateNetworkInfo {
-  List<NetworkInterface> _currentNetworkInterfaces;
-  List<NetworkInterface> get currentNetworkInterfaces =>
-      _currentNetworkInterfaces;
-
-  Future<void> init() async {
-    _currentNetworkInterfaces = await NetworkInterface.list();
-    currentSelectedIndexOfNetworkInterface = _currentNetworkInterfaces[0].index;
-  }
-
-  String currentSelectedIpAddress;
-  // String get currentSelectedIpAddress => _currentSelectedIpAddress;
-  // set currentSelectedIpAddress(String value) {
-  //   _currentSelectedIpAddress = value;
-  // }
-
-  List<InternetAddress> _currentIPAddressList;
-  List<InternetAddress> get currentIPAddressList => _currentIPAddressList;
-  set currentIPAddressList(List<InternetAddress> value) {
-    _currentIPAddressList = value;
-    currentSelectedIpAddress = currentIPAddressList[0].address;
-  }
-
-  int _currentSelectedIndexOfNetworkInterface;
-  int get currentSelectedIndexOfNetworkInterface =>
-      _currentSelectedIndexOfNetworkInterface;
-  set currentSelectedIndexOfNetworkInterface(int value) {
-    _currentSelectedIndexOfNetworkInterface = value;
-    currentIPAddressList = _currentNetworkInterfaces
-        .singleWhere((element) => element.index == value)
-        .addresses;
   }
 }
